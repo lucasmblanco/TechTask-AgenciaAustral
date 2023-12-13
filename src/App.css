@@ -39,16 +39,15 @@ IonCardSubtitle > ion-grid {
   place-content: center;
   padding: 0.2rem;
   border-radius: 8px;
-
   color: white;
   font-weight: bold;
   user-select: none;
   text-align: center;
 }
 
-ion-badge {
+.exp-container > ion-badge {
   --background: purple;
-  width: 3em;
+  width: fit-content;
 }
 
 .exp-container > ion-label {
@@ -86,4 +85,21 @@ ion-icon {
 
 ion-icon:hover {
   filter: brightness(200%);
+}
+
+.button-container {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: start;
+  align-items: center;
+  padding-inline: 1rem;
+  border: 1px solid grey;
+}
+
+.button-container > span {
+  padding: 1rem;
+  font-weight: bold;
+  font-style: italic;
+  color: deeppink;
+  border-radius: 8px;
 }

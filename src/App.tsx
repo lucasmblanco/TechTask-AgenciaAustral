@@ -3,25 +3,21 @@ import {
   setupIonicReact,
   IonApp,
   IonContent,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonFooter,
   IonRefresher,
   IonRefresherContent,
   IonInfiniteScroll,
   IonInfiniteScrollContent,
-  IonIcon,
+  IonButton,
 } from '@ionic/react';
-import { logoGithub } from 'ionicons/icons';
+
 import { useEffect, useState } from 'react';
-import PokemonLogo from './assets/pokemon-logo.png';
+import Header from './components/Header';
+import Footer from './components/Footer';
 import DataDisplay from './components/DataDisplay';
-import { Pokemon } from './types';
+import { Pokemon, RefresherEventDetail } from './types';
 import { FetchStatus, apiUrl } from './constants';
-import { getRandomNumber } from './utils';
-import { RefresherEventDetail, PrimitiveData } from './types';
-import { urlParameters } from './constants';
+import { getRandomNumber, remodelData } from './utils';
+import { FetchType, graphQlQuery } from './constants';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -36,55 +32,69 @@ import '@ionic/react/css/display.css';
 
 setupIonicReact({ mode: 'ios' });
 
+interface FetchOptions {
+  preserve: boolean;
+}
+
 function App() {
   const [pokemons, setPokemons] = useState<Pokemon[]>([]);
-  const [nextPage, setNextPage] = useState('');
   const [status, setStatus] = useState(FetchStatus.IDLE);
-  const [randomNumber, setRandomNumber] = useState(getRandomNumber());
+  const [fetchFn, setFetchFn] = useState<
+    (options?: FetchOptions) => Promise<void>
+  >(() => () => fetchPokemonsRest());
 
   function handleRefresh(event: CustomEvent<RefresherEventDetail>) {
     setTimeout(() => {
-      setRandomNumber(getRandomNumber());
-      fetchPokemons();
+      fetchFn();
       event.detail.complete();
     }, 5000);
   }
 
-  // async function fetchPokemons() {
-  //   try {
-  //     setStatus('pending');
-  //     const response = await fetch('https://beta.pokeapi.co/graphql/v1beta', {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({
-  //         query: query2,
-  //       }),
-  //     });
-  //     const data = await response.json();
-  //     // console.log(data);
-  //     const pokemonData = remodelData(data);
-  //     setPokemons(pokemonData);
-  //     setStatus('succesful');
-  //   } catch (err) {
-  //     setStatus('rejected');
-  //     console.error(err);
-  //   }
-  // }
+  function setNewFetchFn(type: string) {
+    setPokemons([]);
+    if (type === FetchType.GRAPHQL) {
+      setFetchFn(() => fetchPokemonsGraphQL);
+    } else if (type === FetchType.REST) {
+      setFetchFn(() => fetchPokemonsRest);
+    }
+  }
 
-  async function fetchPokemons(
-    url = `${apiUrl + urlParameters + randomNumber}`,
-    preserve = false,
-  ) {
+  async function fetchPokemonsGraphQL(options?: FetchOptions) {
     try {
-      const response = await fetch(url, {
+      const response = await fetch('https://beta.pokeapi.co/graphql/v1beta', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: graphQlQuery,
+        }),
       });
 
-      const data = await response.json();
-      setNextPage(data.next);
-      const urls = data.results.map((element: PrimitiveData) => element.url);
+      const primitiveData = await response.json();
+      console.log(primitiveData);
+      const pokemonsData = remodelData(primitiveData);
+      setPokemons((prevState) => {
+        if (options?.preserve) {
+          return [...prevState, ...pokemonsData];
+        } else {
+          return pokemonsData;
+        }
+      });
+      setStatus(FetchStatus.SUCCESS);
+    } catch (err) {
+      setStatus(FetchStatus.REJECTED);
+      console.error(err);
+    }
+  }
+
+  async function fetchPokemonsRest(options?: FetchOptions) {
+    try {
+      const pokemonUrls = Array(21)
+        .fill(undefined)
+        .map(() => {
+          return apiUrl + getRandomNumber();
+        });
       const pokemonsData = await Promise.all(
-        urls.map(async (url: string) => {
+        pokemonUrls.map(async (url: string) => {
           const response = await fetch(url, {
             headers: { 'Content-Type': 'application/json' },
           });
@@ -93,7 +103,7 @@ function App() {
         }),
       );
       setPokemons((prevState) => {
-        if (preserve) {
+        if (options?.preserve) {
           return [...prevState, ...pokemonsData];
         } else {
           return pokemonsData;
@@ -106,20 +116,34 @@ function App() {
     }
   }
   useEffect(() => {
-    setRandomNumber(getRandomNumber());
-    fetchPokemons();
-  }, []);
+    fetchFn();
+  }, [fetchFn]);
 
   return (
     <>
       <IonApp>
-        <IonHeader>
-          <IonToolbar>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <img src={PokemonLogo} alt="" width={200} />
-            </div>
-          </IonToolbar>
-        </IonHeader>
+        <Header />
+        <div className="button-container">
+          {' '}
+          <span>use: </span>
+          <IonButton
+            fill="solid"
+            type="button"
+            size="small"
+            onClick={() => setNewFetchFn(FetchType.REST)}
+          >
+            API REST
+          </IonButton>
+          <IonButton
+            fill="solid"
+            type="button"
+            size="small"
+            onClick={() => setNewFetchFn(FetchType.GRAPHQL)}
+          >
+            GRAPHQL
+          </IonButton>
+        </div>
+
         <IonContent className="ion-padding">
           <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
             <IonRefresherContent></IonRefresherContent>
@@ -128,24 +152,14 @@ function App() {
           <IonInfiniteScroll
             threshold="5%"
             onIonInfinite={(ev) => {
-              setRandomNumber(getRandomNumber());
-              fetchPokemons(nextPage, true);
+              fetchFn({ preserve: true });
               setTimeout(() => ev.target.complete(), 5000);
             }}
           >
             <IonInfiniteScrollContent></IonInfiniteScrollContent>
           </IonInfiniteScroll>
         </IonContent>
-        <IonFooter>
-          <IonToolbar>
-            <IonTitle>
-              <a href="https://github.com/lucasmblanco/TechTask-AgenciaAustral">
-                {' '}
-                <IonIcon icon={logoGithub} size="large"></IonIcon>
-              </a>
-            </IonTitle>
-          </IonToolbar>
-        </IonFooter>
+        <Footer />
       </IonApp>
     </>
   );

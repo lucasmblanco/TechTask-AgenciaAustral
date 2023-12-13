@@ -18,10 +18,10 @@ export interface Pokemon {
   order: number;
   sprites: Sprites;
   abilities: Abilities[];
-  types: Types[];
+  types: PokeTypes[];
 }
 
-export interface Types {
+export interface PokeTypes {
   type: {
     name: string;
   };
