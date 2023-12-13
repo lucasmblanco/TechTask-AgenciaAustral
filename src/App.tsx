@@ -70,7 +70,6 @@ function App() {
       });
 
       const primitiveData = await response.json();
-      console.log(primitiveData);
       const pokemonsData = remodelData(primitiveData);
       setPokemons((prevState) => {
         if (options?.preserve) {
