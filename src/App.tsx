@@ -15,9 +15,15 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import DataDisplay from './components/DataDisplay';
 import { Pokemon, RefresherEventDetail } from './types';
-import { FetchStatus, apiUrl } from './constants';
+import {
+  FetchStatus,
+  apiRestUrl,
+  apiGraphUrl,
+  elementQuantity,
+  FetchType,
+  graphQlQuery,
+} from './constants';
 import { getRandomNumber, remodelData } from './utils';
-import { FetchType, graphQlQuery } from './constants';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -61,7 +67,7 @@ function App() {
 
   async function fetchPokemonsGraphQL(options?: FetchOptions) {
     try {
-      const response = await fetch('https://beta.pokeapi.co/graphql/v1beta', {
+      const response = await fetch(apiGraphUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -87,10 +93,10 @@ function App() {
 
   async function fetchPokemonsRest(options?: FetchOptions) {
     try {
-      const pokemonUrls = Array(21)
+      const pokemonUrls = Array(elementQuantity)
         .fill(undefined)
         .map(() => {
-          return apiUrl + getRandomNumber();
+          return apiRestUrl + getRandomNumber();
         });
       const pokemonsData = await Promise.all(
         pokemonUrls.map(async (url: string) => {

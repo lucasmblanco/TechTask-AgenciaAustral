@@ -51,4 +51,8 @@ export const graphQlQuery = `{
 
 export const LANGUAGE_EN_ID = '9';
 
-export const apiUrl = 'https://pokeapi.co/api/v2/pokemon/';
+export const apiRestUrl = 'https://pokeapi.co/api/v2/pokemon/';
+
+export const apiGraphUrl = 'https://beta.pokeapi.co/graphql/v1beta';
+
+export const elementQuantity = 21;
